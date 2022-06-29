@@ -11,7 +11,11 @@ import logging
 import os
 import requests
 
+import numpy as np
 import pandas as pd
+
+
+line_sets = ['SET_D_LINE', 'SET_O_LINE', 'SET_D_LINE_NO_PULL', 'SET_O_LINE_NO_PULL']
 
 # Retrieves the game
 def get_events_for_team(team_id, years_back) -> pd.DataFrame:
@@ -255,7 +259,14 @@ if __name__ == "__main__":
             home_team=True,
             to_console=False
             )
-
+        single_game_events_home['point_id'] = single_game_events_home['event_type'].isin(['SET_D_LINE', 'SET_O_LINE']).cumsum()
+        
+        single_game_events_home['our_score'] = single_game_events_home['event_type'].isin(["GOAL"]).cumsum()
+        single_game_events_home['their_score'] = single_game_events_home['event_type'].isin(["SCORED_ON"]).cumsum()
+        
+        single_game_events_home['line'] = np.where(single_game_events_home['event_type'].isin(line_sets), list(single_game_events_home['player'].str.split(", ")), "")
+        single_game_events_home['line'] = single_game_events_home['line'].ffill()
+        
         big_flyers_df_home = pd.concat([big_flyers_df_home, single_game_events_home])
         
         single_game_events_away = parse_game_data(
@@ -263,16 +274,26 @@ if __name__ == "__main__":
             home_team=False,
             to_console=False
             )
-
-        big_flyers_df_away = pd.concat([big_flyers_df_away, single_game_events_away])
         
-    big_flyers_df = pd.concat(big_flyers_df_home, big_flyers_df_away)
+        single_game_events_away['point_id'] = single_game_events_away['event_type'].isin(['SET_D_LINE', 'SET_O_LINE']).cumsum()
+        
+        single_game_events_away['our_score'] = single_game_events_away['event_type'].isin(["GOAL"]).cumsum()
+        single_game_events_away['their_score'] = single_game_events_away['event_type'].isin(["SCORED_ON"]).cumsum()
+        
+        single_game_events_away['line'] = np.where(single_game_events_away['event_type'].isin(line_sets), list(single_game_events_away['player'].str.split(", ")), "")
+        single_game_events_away['line'] = single_game_events_away['line'].ffill()
+        
+        big_flyers_df_away = pd.concat([big_flyers_df_away, single_game_events_away])
+    
+    
+    big_flyers_df = pd.concat([big_flyers_df_home, big_flyers_df_away])
     
     output_file = "Flyers_Games"
     
     big_flyers_df.to_csv(
         os.path.join(os.path.abspath(""), f"{output_file}.csv")
         )
+    
     
     big_flyers_df_home.to_csv(
         os.path.join(os.path.abspath(""), f"{output_file}_home.csv")
