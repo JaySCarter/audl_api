@@ -15,7 +15,9 @@ import numpy as np
 import pandas as pd
 
 
-line_sets = ['SET_D_LINE', 'SET_O_LINE', 'SET_D_LINE_NO_PULL', 'SET_O_LINE_NO_PULL']
+line_sets = ['SET_D_LINE', 'SET_O_LINE', 
+             'SET_D_LINE_NO_PULL', 'SET_O_LINE_NO_PULL'
+             ]
 
 # Retrieves the game
 def get_events_for_team(team_id, years_back) -> pd.DataFrame:
@@ -244,42 +246,61 @@ if __name__ == "__main__":
     game_raw = get_stats_for_game("2021-06-04-TB-PHI")
     game_events = parse_game_data(game_raw, home_team=False, to_console=False)
     
+    # Get the games to parse
     flyers_games = get_game_list_for_team(team_id="flyers", years_back=1)
+    
+    # Make sure we aren't getting games that haven't happened
+    flyers_games = [x for x in flyers_games if x["status"] != "Upcoming"]
+    
+    # Get the game IDs
     flyers_games_ids = [x['gameID'] for x in flyers_games]
     
+    # Initialize some DFs
     big_flyers_df = pd.DataFrame()
     big_flyers_df_home = pd.DataFrame()
     big_flyers_df_away = pd.DataFrame()
     
+    
     for game in flyers_games_ids:
+        
         single_game_raw = get_stats_for_game(game)
-        print(game)
+        print(f"Parsing {game}")
+        
+        # Home Events
         single_game_events_home = parse_game_data(
             single_game_raw,
             home_team=True,
             to_console=False
             )
+        # Which point of the game is it
         single_game_events_home['point_id'] = single_game_events_home['event_type'].isin(['SET_D_LINE', 'SET_O_LINE']).cumsum()
         
+        # Running Score Calculator
         single_game_events_home['our_score'] = single_game_events_home['event_type'].isin(["GOAL"]).cumsum()
         single_game_events_home['their_score'] = single_game_events_home['event_type'].isin(["SCORED_ON"]).cumsum()
         
+        # Parse Lines
         single_game_events_home['line'] = np.where(single_game_events_home['event_type'].isin(line_sets), list(single_game_events_home['player'].str.split(", ")), "")
         single_game_events_home['line'] = single_game_events_home['line'].ffill()
         
+        
         big_flyers_df_home = pd.concat([big_flyers_df_home, single_game_events_home])
         
+        # Away Events
         single_game_events_away = parse_game_data(
             single_game_raw,
             home_team=False,
             to_console=False
             )
         
+        # Which point of the game is it
         single_game_events_away['point_id'] = single_game_events_away['event_type'].isin(['SET_D_LINE', 'SET_O_LINE']).cumsum()
         
+        # Running Score Calculator
         single_game_events_away['our_score'] = single_game_events_away['event_type'].isin(["GOAL"]).cumsum()
         single_game_events_away['their_score'] = single_game_events_away['event_type'].isin(["SCORED_ON"]).cumsum()
         
+        # Parse Lines
         single_game_events_away['line'] = np.where(single_game_events_away['event_type'].isin(line_sets), list(single_game_events_away['player'].str.split(", ")), "")
         single_game_events_away['line'] = single_game_events_away['line'].ffill()
         
