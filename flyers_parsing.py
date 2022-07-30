@@ -244,28 +244,39 @@ if __name__ == "__main__":
     flyers_games_ids = [x['gameID'] for x in flyers_games]
     
     big_flyers_df = pd.DataFrame()
+    big_flyers_df_home = pd.DataFrame()
+    big_flyers_df_away = pd.DataFrame()
     
     for game in flyers_games_ids:
         single_game_raw = get_stats_for_game(game)
         print(game)
-        single_game_events = parse_game_data(
+        single_game_events_home = parse_game_data(
             single_game_raw,
             home_team=True,
             to_console=False
             )
 
-        big_flyers_df = pd.concat([big_flyers_df, single_game_events])
+        big_flyers_df_home = pd.concat([big_flyers_df_home, single_game_events_home])
         
-        single_game_events = parse_game_data(
+        single_game_events_away = parse_game_data(
             single_game_raw,
             home_team=False,
             to_console=False
             )
 
-        big_flyers_df = pd.concat([big_flyers_df, single_game_events])
+        big_flyers_df_away = pd.concat([big_flyers_df_away, single_game_events_away])
         
-        output_file = "FlyersWeek3.csv"
-        big_flyers_df.to_csv(
-            os.path.join(os.path.abspath(""), output_file)
-            )
+    big_flyers_df = pd.concat(big_flyers_df_home, big_flyers_df_away)
     
+    output_file = "Flyers_Games"
+    
+    big_flyers_df.to_csv(
+        os.path.join(os.path.abspath(""), foutput_file)
+        )
+    
+    big_flyers_df_home.to_csv(
+        os.path.join(os.path.abspath(""), output_file)
+        )
+    big_flyers_df_away.to_csv(
+        os.path.join(os.path.abspath(""), output_file)
+        )
